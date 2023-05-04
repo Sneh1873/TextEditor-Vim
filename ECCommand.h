@@ -22,6 +22,7 @@ public:
     void ExecuteCmd(ECCommand *pCmd);
     int GetListLen() const;
     void ClearCommands();
+    void pushNull();
 private:
     std::vector<ECCommand*> listCommands;
     std::vector<ECCommand *> listUndo;

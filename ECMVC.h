@@ -48,7 +48,6 @@ public:
     virtual void UnExecute();
 private:
     ECTextViewImpModel &text;
-    vector<char> removeChars;
     char rChar;
     int posX;
     int posY;

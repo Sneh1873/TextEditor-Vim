@@ -54,7 +54,7 @@ ECRemoveCmd :: ECRemoveCmd(ECTextViewImpModel &textIn, int posX, int posY, int l
 void ECRemoveCmd :: Execute() {
     vector<string> temp = text.GetText();
     if (posY >= 0 && posY < (int)temp.size() && posX >= 0 && posX <= (int)temp[posY].length()) {
-        rChar = temp[posY][posX - 1];
+        rChar = temp[posY][posX];
         text.RemoveText(posX, posY);
     }
 }

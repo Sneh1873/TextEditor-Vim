@@ -52,7 +52,7 @@ void ECCommandHistory :: ExecuteCmd( ECCommand *pCmd )
 {
     pCmd->Execute();
     listCommands.push_back(pCmd);
-    posCurrCmd++;
+    ++posCurrCmd;
 }
 
 int ECCommandHistory :: GetListLen() const {
@@ -71,5 +71,10 @@ void ECCommandHistory :: ClearCommands() {
     listCommands.clear();
     listUndo.clear();
     posCurrCmd = -1;
+}
+
+void ECCommandHistory :: pushNull() {
+    listCommands.push_back(nullptr);
+    posCurrCmd++;
 }
 // ---------------------------------COMMAND HISTORY------------------------------------ //
