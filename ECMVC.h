@@ -48,6 +48,7 @@ public:
     virtual void UnExecute();
 private:
     ECTextViewImpModel &text;
+    vector<char> removeChars;
     char rChar;
     int posX;
     int posY;
@@ -97,7 +98,6 @@ public:
     void AddCommandObs(ECObserver* pObs) {commandMode.push_back(pObs);}
 
     void MoveCursorToValidPos();
-    void ClearCommands();
 
 private:
     void KeywordHighlight(vector<string> listIn);
@@ -110,8 +110,8 @@ private:
 
 
     //stuff i added
-    std::vector<ECCommand *> listCommands;
-    std::vector<ECCommand *> listUndo;
+    // std::vector<ECCommand *> listCommands;
+    // std::vector<ECCommand *> listUndo;
 
     bool mode;
 

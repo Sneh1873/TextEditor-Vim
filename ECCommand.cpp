@@ -72,8 +72,4 @@ void ECCommandHistory :: ClearCommands() {
     listUndo.clear();
     posCurrCmd = -1;
 }
-
-void ECCommandHistory :: PushNull() {
-    listCommands.push_back(nullptr);
-}
 // ---------------------------------COMMAND HISTORY------------------------------------ //

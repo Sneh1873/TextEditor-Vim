@@ -24,45 +24,46 @@ void ECInsertCmd :: UnExecute() {
 
 // ---------------------------------REMOVE------------------------------------ //
 ECRemoveMergeCmd :: ECRemoveMergeCmd(ECTextViewImpModel &textIn, int posY)
-    : text(textIn), posY(posY)
+    : text(textIn), posY(posY), currRow(0)
 {
 }
 
 void ECRemoveMergeCmd::Execute() {
     vector<string> temp = text.GetText();
-    currRow = temp[posY - 1].length();
-    if (posY > 0 && posY < (int)temp.size()) {
-        temp[posY - 1] += temp[posY];
-        temp.erase(temp.begin() + posY);
-    } else if (posY == (int)temp.size() && posY > 1) {
-        temp[posY - 2] += temp[posY - 1];
-        temp.erase(temp.begin() + posY - 1);
-        posY--;
-    }
-    text.SetText(temp);
+        if (posY > 0 && posY < (int)temp.size()) {
+            currRow = temp[posY - 1].length();
+            temp[posY - 1] += temp[posY];
+            temp.erase(temp.begin() + posY);
+        }
+        text.SetText(temp);
 }
 
 void ECRemoveMergeCmd::UnExecute() {
     vector<string> temp = text.GetText();
-    temp.insert(temp.begin() + posY, "");
-    temp[posY] = temp[posY - 1].substr(currRow) + temp[posY];
-    temp[posY - 1] = temp[posY - 1].substr(0, currRow);
-    text.SetText(temp);
+        temp.insert(temp.begin() + posY, "");
+        temp[posY] = temp[posY - 1].substr(currRow) + temp[posY];
+        temp[posY - 1] = temp[posY - 1].substr(0, currRow);
+        text.SetText(temp);
 }
 
 ECRemoveCmd :: ECRemoveCmd(ECTextViewImpModel &textIn, int posX, int posY, int lRow) 
-    : text(textIn), posX(posX), posY(posY), lRow(lRow)
+    : text(textIn), posX(posX), posY(posY), lRow(lRow), rChar('\0')
 {
 }
 
 void ECRemoveCmd :: Execute() {
     vector<string> temp = text.GetText();
-    rChar = temp[posY][posX];
-    text.RemoveText(posX, posY);
+    if (posY >= 0 && posY < (int)temp.size() && posX >= 0 && posX <= (int)temp[posY].length()) {
+        rChar = temp[posY][posX - 1];
+        text.RemoveText(posX, posY);
+    }
 }
 
-void ECRemoveCmd :: UnExecute() {
-    text.InsertText(posX, posY, rChar, lRow);
+void ECRemoveCmd::UnExecute()
+{
+    if (rChar != '\0') {
+        text.InsertText(posX, posY, rChar, lRow);
+    }
 }
 // ---------------------------------REMOVE------------------------------------ //
 
@@ -119,13 +120,12 @@ void ECTextViewImpCtrl :: InsertText(char chIn) {
 
         // TextWrapping(posX, posY, lRow);
         ECInsertCmd *pCmd = new ECInsertCmd(text, chIn, posX, posY, lRow);
-        // pComp.AddCommands(pCmd);
-        // pCmd->Execute();
-        // listCommands.push_back(pCmd);
         histCmds.ExecuteCmd(pCmd);
 
         MoveCursorRight();
-        // MoveCursorDown();
+        if (posX == lRow) {
+            MoveCursorDown();
+        }
         RefreshView();
     }
 }
@@ -138,8 +138,6 @@ void ECTextViewImpCtrl::Backspace() {
 
         if (posX > 0) {
             ECRemoveCmd *pCmd = new ECRemoveCmd(this->text, posX, posY, lRow);
-            // pCmd->Execute();
-            // listCommands.push_back(pCmd);
             histCmds.ExecuteCmd(pCmd);
             MoveCursorLeft();
             RefreshView();
@@ -147,11 +145,11 @@ void ECTextViewImpCtrl::Backspace() {
         else if (posY > 0) {
             int prevLength = text.GetText()[posY - 1].length();
             ECRemoveMergeCmd *pCmd = new ECRemoveMergeCmd(this->text, posY);
-            pCmd->Execute();
-            listCommands.push_back(pCmd);
-            RefreshView();
+            histCmds.ExecuteCmd(pCmd);
+            
             view.SetCursorX(prevLength); 
             view.SetCursorY(posY - 1);
+            RefreshView();
         }
     }
 }
@@ -163,11 +161,10 @@ void ECTextViewImpCtrl::BreakLine() {
         int posY = view.GetCursorY();
 
         ECEnterCmd *pCmd = new ECEnterCmd(text, posX, posY);
-        pCmd->Execute();
-        listCommands.push_back(pCmd);
+        histCmds.ExecuteCmd(pCmd);
 
-        MoveCursorDown();
         view.SetCursorX(0);
+        MoveCursorDown();
         RefreshView();
     }
 }
@@ -273,14 +270,6 @@ void ECTextViewImpCtrl::Undo() {
 
 
 void ECTextViewImpCtrl :: Redo() {
-//    if(listUndo.empty()) return;
-   
-//     for(auto it = listUndo.rbegin(); it!= listUndo.rend(); it++)
-//     {
-//         (*it)->Execute();
-//         listCommands.push_back(*it);
-//     }
-//     listUndo.clear();
     if (histCmds.Redo()) {
         MoveCursorToValidPos();
         RefreshView();
@@ -334,10 +323,6 @@ void ECTextViewImpCtrl :: MoveCursorToValidPos() {
     }
     view.SetCursorY(cursorY);
     view.SetCursorX(cursorX);
-}
-
-void ECTextViewImpCtrl :: ClearCommands() {
-    histCmds.PushNull();
 }
 
 void ECTextViewImpCtrl::KeywordHighlight(vector<string> listIn) {
