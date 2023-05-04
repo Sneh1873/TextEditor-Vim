@@ -85,7 +85,6 @@ void ECModeEdit :: Update() {
     int key = view_pointer.GetPressedKey();
     if (key == 105) {
         ctrl.ModeChange(true);
-        ctrl.ClearCommands();
     }
 }
 

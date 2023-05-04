@@ -120,8 +120,9 @@ void ECTextViewImpCtrl :: InsertText(char chIn) {
         // TextWrapping(posX, posY, lRow);
         ECInsertCmd *pCmd = new ECInsertCmd(text, chIn, posX, posY, lRow);
         // pComp.AddCommands(pCmd);
-        pCmd->Execute();
-        listCommands.push_back(pCmd);
+        // pCmd->Execute();
+        // listCommands.push_back(pCmd);
+        histCmds.ExecuteCmd(pCmd);
 
         MoveCursorRight();
         // MoveCursorDown();
@@ -137,8 +138,9 @@ void ECTextViewImpCtrl::Backspace() {
 
         if (posX > 0) {
             ECRemoveCmd *pCmd = new ECRemoveCmd(this->text, posX, posY, lRow);
-            pCmd->Execute();
-            listCommands.push_back(pCmd);
+            // pCmd->Execute();
+            // listCommands.push_back(pCmd);
+            histCmds.ExecuteCmd(pCmd);
             MoveCursorLeft();
             RefreshView();
         }
@@ -263,31 +265,26 @@ void ECTextViewImpCtrl :: MoveCursorRight() {
 }
 
 void ECTextViewImpCtrl::Undo() {
-   if (listCommands.empty()) {
-        return;
+    if (histCmds.Undo()) {
+        MoveCursorToValidPos();
+        RefreshView();
     }
-    
-    for(auto it = listCommands.rbegin(); it!=listCommands.rend(); it++)
-    {
-        (*it)->UnExecute();
-        listUndo.push_back(*it);
-    }
-    listCommands.clear();
-
-    RefreshView();
 }
 
 
 void ECTextViewImpCtrl :: Redo() {
-   if(listUndo.empty()) return;
+//    if(listUndo.empty()) return;
    
-    for(auto it = listUndo.rbegin(); it!= listUndo.rend(); it++)
-    {
-        (*it)->Execute();
-        listCommands.push_back(*it);
+//     for(auto it = listUndo.rbegin(); it!= listUndo.rend(); it++)
+//     {
+//         (*it)->Execute();
+//         listCommands.push_back(*it);
+//     }
+//     listUndo.clear();
+    if (histCmds.Redo()) {
+        MoveCursorToValidPos();
+        RefreshView();
     }
-    listUndo.clear();
-    RefreshView();
 }
 
 void ECTextViewImpCtrl :: ModeChange(bool modeIn) {
