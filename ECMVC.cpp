@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cctype>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <algorithm>
 
@@ -46,12 +47,13 @@ void ECRemoveMergeCmd::UnExecute() {
         text.SetText(temp);
 }
 
-ECRemoveCmd :: ECRemoveCmd(ECTextViewImpModel &textIn, int posX, int posY, int lRow) 
+ECRemoveCmd::ECRemoveCmd(ECTextViewImpModel& textIn, int posX, int posY, int lRow)
     : text(textIn), posX(posX), posY(posY), lRow(lRow), rChar('\0')
 {
 }
 
-void ECRemoveCmd :: Execute() {
+void ECRemoveCmd::Execute()
+{
     vector<string> temp = text.GetText();
     if (posY >= 0 && posY < (int)temp.size() && posX >= 0 && posX <= (int)temp[posY].length()) {
         rChar = temp[posY][posX];
@@ -61,9 +63,7 @@ void ECRemoveCmd :: Execute() {
 
 void ECRemoveCmd::UnExecute()
 {
-    if (rChar != '\0') {
-        text.InsertText(posX, posY, rChar, lRow);
-    }
+    text.InsertText(posX, posY, rChar, lRow);
 }
 // ---------------------------------REMOVE------------------------------------ //
 
@@ -92,16 +92,18 @@ ECTextViewImpCtrl :: ECTextViewImpCtrl(ECTextViewImpModel &textIn, ECTextViewImp
     : text(textIn), view(viewIn), mode(false)
 {
     RefreshView();
+    // vector<string> temp = text.GetText();
+    // KeywordHighlight(text.GetText()); 
 }
 
 void ECTextViewImpCtrl :: RefreshView() {
     vector<string> temp = text.GetText();
     view.InitRows();
     int lengthRows = view.GetRowNumInView();
-    KeywordHighlight(temp); 
     for (int i = 0; i < min(lengthRows, (int)temp.size()); i++) {
         view.AddRow(temp[i]);
     }
+    KeywordHighlight(temp); 
     view.Refresh();
 }
 
@@ -151,6 +153,11 @@ void ECTextViewImpCtrl::Backspace() {
             view.SetCursorY(posY - 1);
             RefreshView();
         }
+        // vector<string> temp = text.GetText();
+        // std::ofstream outfile;
+        // outfile.open("te.txt");
+        // for(auto it: temp) outfile << it << std::endl;
+        // outfile.close();
     }
 }
 
@@ -200,11 +207,12 @@ void ECTextViewImpCtrl::MoveCursorDown() {
     // Getting the current X and Y positions of the cursor
     int cursorX = view.GetCursorX();
     int cursorY = view.GetCursorY();
+    int rowLimit = view.GetRowNumInView() - 1;
     // Text from the editor
     const vector<string>& temp = text.GetText();
 
     // Checking if the cursor is not at the bottom of the row
-    if (cursorY < (int)(temp.size() - 1)) {
+    if (cursorY < (int)(temp.size() - 1) && cursorY < rowLimit) {
         // Moving the cursor down by one row
         view.SetCursorY(cursorY + 1);
 
@@ -336,22 +344,27 @@ void ECTextViewImpCtrl::KeywordHighlight(vector<string> listIn) {
     }
     keywordFile.close();
 
-    for (int row = 0; row < listIn.size(); row++) {
-        string line = listIn[row];
+    for (int i = 0; i < keywords.size(); i++) {
+        string keyword = keywords[i];
         string::size_type pos = 0;
-        while (pos < line.length()) {
-            while (pos < line.length() && line[pos] == ' ') {
-                pos++;
+        while (pos < listIn.size()) {
+            string line = listIn[pos];
+            string::size_type wordPos = line.find(keyword, 0);
+            while (wordPos != string::npos) {
+                bool isWholeWord = true;
+                // Check if the found keyword is a whole word separated by spaces
+                if (wordPos > 0 && line[wordPos - 1] != ' ') {
+                    isWholeWord = false;
+                }
+                if (wordPos + keyword.length() < line.length() && line[wordPos + keyword.length()] != ' ') {
+                    isWholeWord = false;
+                }
+                if (isWholeWord) {
+                    view.SetColor(pos, wordPos, wordPos + keyword.length() - 1, TEXT_COLOR_BLUE);
+                }
+                wordPos = line.find(keyword, wordPos + 1);
             }
-            string::size_type wordEnd = line.find(' ', pos);
-            if (wordEnd == string::npos) {
-                wordEnd = line.length();
-            }
-            string word = line.substr(pos, wordEnd - pos);
-            if (find(keywords.begin(), keywords.end(), word) != keywords.end()) {
-                view.SetColor(row, pos, wordEnd - 1, TEXT_COLOR_BLUE);
-            }
-            pos = wordEnd + 1;
+            pos++;
         }
     }
 }
@@ -412,11 +425,11 @@ void ECTextViewImpModel :: InsertText(int posX, int posY, char ch, int lRow) {
     } 
     else {
         // wrap the text to a new row
-        TextWrapping(posX, posY, lRow);
+        TextWrap(posX, posY, lRow);
     }
 }
 
-void ECTextViewImpModel :: TextWrapping(int posX, int posY, int lRow) {
+void ECTextViewImpModel :: TextWrap(int posX, int posY, int lRow) {
     if ((int)listStrings[posY].length() == lRow) {
         // Wrappig the text to a new row
         string remaining = listStrings[posY].substr(posX);
@@ -437,16 +450,12 @@ void ECTextViewImpModel :: BreakLine(int posX, int posY) {
         string fh = line.substr(0, posX); // Get substring of line before cursor position
         string sh = line.substr(posX); // Get substring of line after cursor position
 
-        if (posY + 1 < (int)listStrings.size()) {
-            listStrings[posY + 1] = sh + listStrings[posY + 1];
-        } else {
-            listStrings.push_back(sh);
-        }
-
+        listStrings.insert(listStrings.begin() + posY + 1, sh);
         listStrings[posY] = fh;  
     }
     else {
         listStrings.resize(posY + 1); // Resize temp to accommodate the last line
+        listStrings.push_back("");
     }
 }
 
@@ -459,4 +468,5 @@ void ECTextViewImpModel :: MergeLine(int posX, int posY) {
         listStrings.erase(listStrings.begin() + posY + 1);
     }
 }
+
 // ---------------------------------MODEL------------------------------------ //

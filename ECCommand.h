@@ -2,6 +2,7 @@
 #define ECCOMMAND_H
 
 #include <vector>
+#include <stack>
 
 // ---------------------------------COMMAND------------------------------------ //
 class ECCommand {

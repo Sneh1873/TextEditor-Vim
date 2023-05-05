@@ -52,6 +52,7 @@ private:
     int posX;
     int posY;
     int lRow;
+    int currRow;
 };  
 // ---------------------------------REMOVE------------------------------------ //
 
@@ -134,8 +135,10 @@ public:
     void RemoveText(int posX, int posY);
     void BreakLine(int posX, int posY);
     void MergeLine(int posX, int posY);
+
+    int GetWrappedLineLength(int posX, int posY) const;
 private:
-    void TextWrapping(int posX, int posY, int lRow);
+    void TextWrap(int posX, int posY, int lRow);
     vector<string> listStrings;
     string file_name;
 };
