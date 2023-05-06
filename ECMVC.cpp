@@ -63,7 +63,7 @@ void ECRemoveCmd::Execute()
 
 void ECRemoveCmd::UnExecute()
 {
-    text.InsertText(posX, posY, rChar, lRow);
+    text.InsertText(posX-1, posY, rChar, lRow);
 }
 // ---------------------------------REMOVE------------------------------------ //
 
@@ -92,20 +92,24 @@ ECTextViewImpCtrl :: ECTextViewImpCtrl(ECTextViewImpModel &textIn, ECTextViewImp
     : text(textIn), view(viewIn), mode(false)
 {
     RefreshView();
-    // vector<string> temp = text.GetText();
-    // KeywordHighlight(text.GetText()); 
 }
 
-void ECTextViewImpCtrl :: RefreshView() {
-    vector<string> temp = text.GetText();
+void ECTextViewImpCtrl::RefreshView() {
+    view.ClearColor();
     view.InitRows();
+    vector<string> temp = text.GetText();
     int lengthRows = view.GetRowNumInView();
-    for (int i = 0; i < min(lengthRows, (int)temp.size()); i++) {
-        view.AddRow(temp[i]);
+    for (int i = 0; i < min(lengthRows, static_cast<int>(temp.size())); i++) {
+        if(temp[i].size() > view.GetColNumInView())
+        {
+            TextWrap(temp);
+        }
+        else view.AddRow(temp[i]);
     }
-    KeywordHighlight(temp); 
+    KeywordHighlight();
     view.Refresh();
 }
+
 
 void ECTextViewImpCtrl :: Escape() {
     view.InitRows();
@@ -120,16 +124,47 @@ void ECTextViewImpCtrl :: InsertText(char chIn) {
         int posY = view.GetCursorY();
         int lRow = view.GetColNumInView();
 
-        // TextWrapping(posX, posY, lRow);
         ECInsertCmd *pCmd = new ECInsertCmd(text, chIn, posX, posY, lRow);
         histCmds.ExecuteCmd(pCmd);
 
+        // Move cursor to the right
         MoveCursorRight();
         if (posX == lRow) {
-            MoveCursorDown();
+            // Move cursor down to the next row
+            view.SetCursorY(posY + 1);
+            // Set cursor position to the beginning of the row
+            view.SetCursorX(0);
+            // Update cursor position variables
+            posX = 0;
+            posY = view.GetCursorY();
         }
         RefreshView();
     }
+}
+
+void ECTextViewImpCtrl :: TextWrap(vector<string> listIn) {
+    for (const auto& line : listIn) {
+    string wrappedLine = "";
+    int lineLength = line.length();
+    int colNumInView = view.GetColNumInView();
+
+    // Check if the line needs to be wrapped
+    if (lineLength > colNumInView) {
+        int startIndex = 0;
+        int endIndex = 0;
+
+        // Wrap the line
+        while (endIndex < lineLength) {
+            endIndex = min(startIndex + colNumInView, lineLength);
+            wrappedLine += line.substr(startIndex, endIndex - startIndex) + '\n';
+            startIndex = endIndex;
+        }
+    } else {
+        wrappedLine = line + '\n';
+    }
+    view.AddRow(wrappedLine);
+    }
+
 }
 
 void ECTextViewImpCtrl::Backspace() {
@@ -153,14 +188,8 @@ void ECTextViewImpCtrl::Backspace() {
             view.SetCursorY(posY - 1);
             RefreshView();
         }
-        // vector<string> temp = text.GetText();
-        // std::ofstream outfile;
-        // outfile.open("te.txt");
-        // for(auto it: temp) outfile << it << std::endl;
-        // outfile.close();
     }
 }
-
 
 void ECTextViewImpCtrl::BreakLine() {
     if (mode) {
@@ -174,6 +203,35 @@ void ECTextViewImpCtrl::BreakLine() {
         MoveCursorDown();
         RefreshView();
     }
+}
+
+void ECTextViewImpCtrl::WrapCursor(vector<string> listIn) {
+    int cRow = 0;
+    int cCol = 0;
+    int lRow = view.GetColNumInView();
+    int textRow = viewRow;
+
+    // calculate the row and column of the cursor based on wrapped text
+    for (int i = 0; i < view.GetCursorX(); ++i) {
+        int len = static_cast<int>(listIn[textRow].length());
+        cRow += (len + lRow) / lRow;
+        textRow += len / lRow + 1;
+    }
+    int len = static_cast<int>(listIn[textRow].length());
+    cRow += view.GetCursorY() / lRow;
+    cCol += view.GetCursorY() % lRow;
+    if (cRow > view.GetRowNumInView() - 1) {
+        viewRow += (cRow - view.GetRowNumInView() + 1);
+        if (viewRow + view.GetRowNumInView() > static_cast<int>(listIn.size())) {
+            viewRow = static_cast<int>(listIn.size()) - view.GetRowNumInView();
+        }
+        RefreshView();
+        textRow = viewRow;
+        cRow = view.GetCursorY() / lRow;
+        cCol = view.GetCursorY() % lRow;
+    }
+    view.SetCursorY(cRow);
+    view.SetCursorX(cCol);
 }
 
 void ECTextViewImpCtrl :: MoveCursorUp() {
@@ -204,27 +262,26 @@ void ECTextViewImpCtrl :: MoveCursorUp() {
 }
 
 void ECTextViewImpCtrl::MoveCursorDown() {
-    // Getting the current X and Y positions of the cursor
     int cursorX = view.GetCursorX();
     int cursorY = view.GetCursorY();
     int rowLimit = view.GetRowNumInView() - 1;
-    // Text from the editor
+
+    // get the text from the editor
     const vector<string>& temp = text.GetText();
 
-    // Checking if the cursor is not at the bottom of the row
     if (cursorY < (int)(temp.size() - 1) && cursorY < rowLimit) {
-        // Moving the cursor down by one row
+        // move the cursor down by one row
         view.SetCursorY(cursorY + 1);
 
-        // Getting the length of the row below
+        // get the length of the row below
         int r_length = temp[cursorY + 1].length();
 
-        // Checking if cursor X position is within bounds of the row below
+        // check if cursor X position is within bounds of the row below
         if (cursorX < r_length) {
-            // Setting cursor X position to the same value
+            // set cursor X position to the same value
             view.SetCursorX(cursorX);
         } else {
-            // Setting cursor X position to the end of the row below
+            // set cursor X position to the end of the row below
             view.SetCursorX(r_length);
         }
     }
@@ -262,7 +319,7 @@ void ECTextViewImpCtrl :: MoveCursorRight() {
     int length = temp[cursorY].size();
 
     // Checking if the cursor can be moved to the right within the same row
-    if(cursorX < length && cursorX <= lRow)
+    if(cursorX < length)
     {
         // Moving cursor right by one column
         view.SetCursorX(cursorX + 1);
@@ -333,7 +390,8 @@ void ECTextViewImpCtrl :: MoveCursorToValidPos() {
     view.SetCursorX(cursorX);
 }
 
-void ECTextViewImpCtrl::KeywordHighlight(vector<string> listIn) {
+void ECTextViewImpCtrl::KeywordHighlight() {
+    vector<string> temp = text.GetText();
     vector<string> keywords;
     ifstream keywordFile("keywords.txt");
     if (keywordFile) {
@@ -347,21 +405,11 @@ void ECTextViewImpCtrl::KeywordHighlight(vector<string> listIn) {
     for (int i = 0; i < keywords.size(); i++) {
         string keyword = keywords[i];
         string::size_type pos = 0;
-        while (pos < listIn.size()) {
-            string line = listIn[pos];
+        while (pos < temp.size()) {
+            string line = temp[pos];
             string::size_type wordPos = line.find(keyword, 0);
             while (wordPos != string::npos) {
-                bool isWholeWord = true;
-                // Check if the found keyword is a whole word separated by spaces
-                if (wordPos > 0 && line[wordPos - 1] != ' ') {
-                    isWholeWord = false;
-                }
-                if (wordPos + keyword.length() < line.length() && line[wordPos + keyword.length()] != ' ') {
-                    isWholeWord = false;
-                }
-                if (isWholeWord) {
-                    view.SetColor(pos, wordPos, wordPos + keyword.length() - 1, TEXT_COLOR_BLUE);
-                }
+                view.SetColor(pos, wordPos, wordPos + keyword.length() - 1, TEXT_COLOR_BLUE);
                 wordPos = line.find(keyword, wordPos + 1);
             }
             pos++;
@@ -423,19 +471,6 @@ void ECTextViewImpModel :: InsertText(int posX, int posY, char ch, int lRow) {
     else if (posX < lRow) {
         listStrings[posY].insert(posX, 1, ch); // insert the character at the specified position
     } 
-    else {
-        // wrap the text to a new row
-        TextWrap(posX, posY, lRow);
-    }
-}
-
-void ECTextViewImpModel :: TextWrap(int posX, int posY, int lRow) {
-    if ((int)listStrings[posY].length() == lRow) {
-        // Wrappig the text to a new row
-        string remaining = listStrings[posY].substr(posX);
-        listStrings[posY] = listStrings[posY].substr(0, posX);
-        listStrings.insert(listStrings.begin() + posY + 1, remaining);
-    }
 }
 
 void ECTextViewImpModel::RemoveText(int posX, int posY) {
@@ -468,5 +503,4 @@ void ECTextViewImpModel :: MergeLine(int posX, int posY) {
         listStrings.erase(listStrings.begin() + posY + 1);
     }
 }
-
 // ---------------------------------MODEL------------------------------------ //

@@ -97,23 +97,20 @@ public:
     void AddEditObs(ECObserver* pObs) {editMode.push_back(pObs);}
     void AddCommandObs(ECObserver* pObs) {commandMode.push_back(pObs);}
 
-    void MoveCursorToValidPos();
-
 private:
-    void KeywordHighlight(vector<string> listIn);
+    void KeywordHighlight();
     void RefreshView();
     void HandleObservers();
+    void TextWrap(vector<string> listIn);
+    void MoveCursorToValidPos();
+    void WrapCursor(vector<string> listIn);
 
     ECTextViewImpModel &text;
     ECTextViewImp &view;
     ECCommandHistory histCmds;
 
-
-    //stuff i added
-    // std::vector<ECCommand *> listCommands;
-    // std::vector<ECCommand *> listUndo;
-
     bool mode;
+    int viewRow;
 
     vector<ECObserver*> editMode;
     vector<ECObserver*> commandMode;
@@ -135,10 +132,8 @@ public:
     void RemoveText(int posX, int posY);
     void BreakLine(int posX, int posY);
     void MergeLine(int posX, int posY);
-
-    int GetWrappedLineLength(int posX, int posY) const;
 private:
-    void TextWrap(int posX, int posY, int lRow);
+    // void TextWrap(int posX, int posY, int lRow);
     vector<string> listStrings;
     string file_name;
 };
