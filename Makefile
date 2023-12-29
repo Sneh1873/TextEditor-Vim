@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++14 #-Wall -Wextra -pedantic -g
 SRCS = ECTextViewImp.cpp ECEditorTest.cpp ECConcreteObserver.cpp ECMVC.cpp ECCommand.cpp
 OBJS = $(SRCS:.cpp=.o)
-TARGET = myeditor
+TARGET = edit
 
 all: $(TARGET)
 
