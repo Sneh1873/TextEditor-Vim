@@ -38,9 +38,9 @@ $ make
 Run the editor by providing the name of the file you want to edit:
 ```bash
 $ ./edit [file_name]
-
+```
 For Example,
-
+```bash
 $ ./edit sample.txt
 ```
 
